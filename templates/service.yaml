@@ -1,0 +1,86 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ include "template.fullname" . }}-mongodb-service
+spec:
+  ports:
+    - name: 'mongo'
+      protocol: TCP
+      port: 27017
+      targetPort: 27017
+  selector:
+    name: {{ include "template.fullname" . }}-mongodb
+  type: NodePort
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ include "template.fullname" . }}-service-tcp
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ports:
+    - name: 'internal-comms'
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+    - name: 'https-web'
+      protocol: TCP
+      port: 8443
+      targetPort: 8443
+    - name: 'http-s-redirect'
+      protocol: TCP
+      port: 8843
+      targetPort: 8843
+    - name: 'http-redirect'
+      protocol: TCP
+      port: 8880
+      targetPort: 8880
+    - name: 'speedt-test'
+      protocol: TCP
+      port: 6789
+      targetPort: 6789
+  selector:
+    name: {{ include "template.fullname" . }}-app
+  type: {{ .Values.service.type }}
+  {{- if .Values.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.service.loadBalancerIP }}
+  {{ end }}
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ include "template.fullname" . }}-service-udp
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ports:
+    - name: '1900'
+      protocol: UDP
+      port: 1900
+      targetPort: 1900
+    - name: '3478'
+      protocol: UDP
+      port: 3478
+      targetPort: 3478
+    - name: '5514'
+      protocol: UDP
+      port: 5514
+      targetPort: 5514
+    - name: '10001'
+      protocol: UDP
+      port: 10001
+      targetPort: 10001
+  selector:
+    name: {{ include "template.fullname" . }}-app
+  type: {{ .Values.service.type }}
+  {{- if .Values.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.service.loadBalancerIP }}
+  {{ end }}

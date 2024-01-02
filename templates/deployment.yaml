@@ -1,0 +1,144 @@
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: {{ include "template.fullname" . }}-mongodb
+  labels:
+    {{- include "template.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: {{ include "template.fullname" . }}-mongodb
+  template:
+    metadata:
+      name: {{ include "template.fullname" . }}-mongodb
+      labels:
+        name: {{ include "template.fullname" . }}-mongodb
+    spec:
+      volumes:
+        - name: {{ include "template.fullname" . }}-mongodb-init-volume
+          configMap:
+            name: {{ include "template.fullname" . }}-mongodb-init-js
+      {{- with .Values.mongodb.volumes }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      containers:
+        - name: mongodb
+          image: "{{ .Values.mongodb.image }}:{{ .Values.mongodb.imageTag }}"
+          args: ["--wiredTigerCacheSizeGB", "{{ .Values.mongodb.cacheSizeGB }}"]
+
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: {{ .Values.mongodb.adminuser }}
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              value: {{ .Values.mongodb.adminpassword }}
+
+          ports:
+            - name: 'mongo'
+              containerPort: 27017
+              protocol: TCP
+
+          volumeMounts:
+            - name: {{ include "template.fullname" . }}-mongodb-init-volume
+              mountPath: /docker-entrypoint-initdb.d/init-mongo.js
+          {{- with .Values.mongodb.volumeMounts }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: {{ include "template.fullname" . }}-app
+  labels:
+    {{- include "template.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: {{ include "template.fullname" . }}-app
+  template:
+    metadata:
+      name: {{ include "template.fullname" . }}-app
+      labels:
+        name: {{ include "template.fullname" . }}-app
+    spec:
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      containers:
+        - name: {{ include "template.fullname" . }}-app
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          env:
+            - name: TZ
+              value: "Europe/Budapest"
+            - name: MEM_LIMIT
+              value: "1024"
+            - name: MEM_STARTUP
+              value: "1024"
+            - name: MONGO_HOST
+              value: {{ include "template.fullname" . }}-mongodb-service
+            - name: MONGO_PORT
+              value: "27017"
+            - name: MONGO_USER
+              value: {{ .Values.mongodb.username }}
+            - name: MONGO_PASS
+              value: {{ .Values.mongodb.password }}
+            - name: MONGO_DBNAME
+              value: {{ .Values.mongodb.dbname }}
+
+          ports:
+            - name: 'l2-discoverable'
+              containerPort: 1900
+              protocol: UDP
+            - name: 'ap-discovery'
+              containerPort: 10001
+              protocol: UDP
+            - name: 'stun'
+              containerPort: 3478
+              protocol: UDP
+            - name: 'syslog'
+              containerPort: 5514
+              protocol: UDP
+            - name: 'speed-test'
+              containerPort: 6789
+              protocol: TCP
+            - name: 'internal-comms'
+              containerPort: 8080
+              protocol: TCP
+            - name: 'https-web'
+              containerPort: 8443
+              protocol: TCP
+            - name: 'http-s-redirect'
+              containerPort: 8843
+              protocol: TCP
+            - name: 'http-redirect'
+              containerPort: 8880
+              protocol: TCP
+
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+          readinessProbe:
+              httpGet:
+                  path: /status
+                  port: 8080
+              periodSeconds: 10
+              failureThreshold: 1
+
+          livenessProbe:
+              httpGet:
+                  path: /status
+                  port: 8080
+              initialDelaySeconds: 60
+              periodSeconds: 30
+              failureThreshold: 5
+
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

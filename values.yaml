@@ -1,0 +1,81 @@
+# Default values for unifi-network-application.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: "linuxserver/unifi-network-application"
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  annotations: {}
+  type:
+  loadBalancerIp:
+
+# Not optional - otherwise UI not accessible
+ingress:
+  hostname: unifi.local
+  # any annotations required for ex. for load balancer
+  annotations: {}
+    # traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    # traefik.ingress.kubernetes.io/loadbalancer.server.scheme: https
+  # Additional ingress for http to https redirection, if needed
+  redirect:
+    enabled: true
+    annotations: {}
+    # traefik.ingress.kubernetes.io/router.entrypoints: web
+    # traefik.ingress.kubernetes.io/router.middlewares: default-redirect-https@kubernetescrd
+    # ingress.kubernetes.io/custom-request-headers: X-Forwarded-Proto:https
+
+resources: {}
+# Suggested/tested resource settings
+  # requests:
+  #   memory: 1Gi
+  #   cpu: 0.5
+  # limits:
+  #   memory: 1.5Gi
+  #  cpu: 2
+
+# Additional volumes on the output Deployment definition.
+volumes: []
+#  - name: nfs-unifi-config
+#    nfs:
+#      server: 1.2.3.4
+#      path: /path/to/unifi-network/config
+# Additional volumeMounts on the output Deployment definition.
+# Mount storage for unifi app config under /config
+volumeMounts: []
+#  - name: nfs-unifi-config
+#    mountPath: /config
+
+# Settigns related to the embedded MongoDB instance
+mongodb:
+  # Image to pull and use. For Arm64 (Raspberry Pi 4 for example), use "arm64v8/mongo"
+  image: "mongo"
+  imageTag: "3.6"
+  cacheSizeGB: "0.25"
+  # Main database name
+  dbname: unifi
+  # Stat database name
+  dbname_stat: unifi_stat
+  # Credentials for "normal" and admin user. Must be set/overridden.
+  username: ""
+  password: ""
+  adminuser: ""
+  adminpassword: ""
+  # Volumes and their corresponding mounts for the mongodb deployment
+  # Storage for mongodb should be mounted under /data/db
+  volumes: []
+#    - name: nfs-unifi-db
+#      nfs:
+#        server: 1.2.3.4
+#        path: /path/to/unifi-network/db
+  volumeMounts: []
+#    - name: nfs-unifi-db
+#      mountPath: /data/db
