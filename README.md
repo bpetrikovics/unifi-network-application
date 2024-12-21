@@ -4,6 +4,8 @@
 
 A Helm chart for Kubernetes
 
+*Please note this chart is no longer updated with each app version. Please set the desired version in values.yaml (image.tag)*
+
 ## Maintainers
 
 | Name | Email | Url |
